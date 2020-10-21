@@ -1,0 +1,4 @@
+venv
+build
+training.charm
+*.py[cod]

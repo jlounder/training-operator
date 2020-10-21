@@ -1,0 +1,23 @@
+# Copyright 2020 Jeremy Lounder
+# See LICENSE file for licensing details.
+#
+# This is only an example, and you should edit to suit your needs.
+# If you don't need config, you can remove the file entirely.
+options:
+  grafana_port:
+    default: 3000
+    description: The port Grafana will listen on.
+    type: int
+  admin_username:
+    default: "admin"
+    description: |
+        The username for the static admin user. This must be set at deploy time,
+        future changes to this config will be ignored.
+    type: string
+  admin_password:
+    default: ""
+    description: |
+        The password for the static admin user. This must be set at deploy time,
+        future changes to this config will be ignored. If left blank, the
+        Grafana default password will be used.
+    type: string
