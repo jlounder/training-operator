@@ -20,31 +20,22 @@ class TrainingCharm(CharmBase):
         super().__init__(*args)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
 
-    def _on_config_changed(self, _):
+    def _on_config_changed(self, _=None):
         pod_spec = self._build_pod_spec()
         self.model.pod.set_spec(pod_spec)
         self.unit.status = ActiveStatus("Grafana pod ready.")
 
     def _build_pod_spec(self):
-        """Builds the pod spec based on available info in datastore`."""
-
+        port = self.model.config["grafana_port"]
         config_content = self._build_grafana_ini()
         spec = {
             "containers": [
                 {
                     "name": self.app.name,
                     "imageDetails": {"imagePath": "grafana/grafana:7.2.1-ubuntu"},
-                    "ports": [
-                        {
-                            "containerPort": self.model.config["grafana_port"],
-                            "protocol": "TCP",
-                        }
-                    ],
+                    "ports": [{"containerPort": port, "protocol": "TCP"}],
                     "readinessProbe": {
-                        "httpGet": {
-                            "path": "/api/health",
-                            "port": self.model.config["grafana_port"],
-                        },
+                        "httpGet": {"path": "/api/health", "port": port},
                         "initialDelaySeconds": 10,
                         "timeoutSeconds": 30,
                     },
@@ -55,7 +46,7 @@ class TrainingCharm(CharmBase):
                             "files": {"grafana.ini": config_content},
                         }
                     ],
-                    "config": {},
+                    "config": {},  # used to store hashes of config file text
                 }
             ]
         }
@@ -63,12 +54,6 @@ class TrainingCharm(CharmBase):
         return spec
 
     def _build_grafana_ini(self):
-        """Create the text of the config.ini file.
-
-        More information about this can be found in the Grafana docs:
-        https://grafana.com/docs/grafana/latest/administration/configuration/
-        """
-
         config_text = textwrap.dedent(
             """
             [server]

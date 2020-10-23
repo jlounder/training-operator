@@ -19,14 +19,12 @@ class TrainingCharm(CharmBase):
         super().__init__(*args)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
 
-    def _on_config_changed(self, _):
+    def _on_config_changed(self, _=None):
         pod_spec = self._build_pod_spec()
         self.model.pod.set_spec(pod_spec)
         self.unit.status = ActiveStatus("Grafana pod ready.")
 
     def _build_pod_spec(self):
-        """Builds the pod spec based on available info in datastore`."""
-
         spec = {
             "containers": [
                 {
