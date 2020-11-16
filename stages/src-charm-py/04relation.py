@@ -19,7 +19,9 @@ class TrainingCharm(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
-        self.framework.observe(self.on.config_changed, self._on_config_changed)
+        self.framework.observe(
+            self.on["grafana-dashboard"].relation_joined, self._on_dashboard_joined
+        )
         self.framework.observe(
             self.on["grafana-dashboard"].relation_changed, self._on_dashboard_changed
         )
@@ -78,11 +80,20 @@ class TrainingCharm(CharmBase):
         )
         return config_text
 
+    def _on_dashboard_joined(self, event):
+        ingress_ip = self.model.get_binding(event.relation).network.ingress_address
+        ingress_port = self.model.config["grafana_port"]
+        grafana_host = "{}:{}".format(ingress_ip, ingress_port)
+        event.relation.data[self.app].update({"host": grafana_host})
+
+        private_ip = str(self.model.get_binding(event.relation).network.bind_address)
+        event.relation.data[self.unit].update({"private_address": private_ip})
+
     def _on_dashboard_changed(self, event):
         if event.unit is None:
             return
 
-        dashboard = event.relation.data[event.unit].get("dashboard")
+        dashboard = event.relation.data[event.app].get("dashboard")
         if dashboard is None:
             return
 
