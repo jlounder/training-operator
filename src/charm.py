@@ -3,6 +3,7 @@
 # See LICENSE file for licensing details.
 
 import logging
+import textwrap
 
 from ops.charm import CharmBase
 from ops.main import main
@@ -25,24 +26,49 @@ class TrainingCharm(CharmBase):
         self.unit.status = ActiveStatus("Grafana pod ready.")
 
     def _build_pod_spec(self):
+        port = self.model.config["grafana_port"]
+        config_content = self._build_grafana_ini()
         spec = {
             "containers": [
                 {
                     "name": self.app.name,
                     "imageDetails": {"imagePath": "grafana/grafana:7.2.1-ubuntu"},
-                    "ports": [{"containerPort": 3000, "protocol": "TCP"}],
+                    "ports": [{"containerPort": port, "protocol": "TCP"}],
                     "readinessProbe": {
-                        "httpGet": {"path": "/api/health", "port": 3000},
+                        "httpGet": {"path": "/api/health", "port": port},
                         "initialDelaySeconds": 10,
                         "timeoutSeconds": 30,
                     },
-                    "files": [],
+                    "files": [
+                        {
+                            "name": "grafana-config-ini",
+                            "mountPath": "/etc/grafana",
+                            "files": {"grafana.ini": config_content},
+                        }
+                    ],
                     "config": {},  # used to store hashes of config file text
                 }
             ]
         }
 
         return spec
+
+    def _build_grafana_ini(self):
+        config_text = textwrap.dedent(
+            """
+            [server]
+            http_port = {0}
+
+            [security]
+            admin_user = {1}
+            admin_password = {2}
+            """.format(
+                self.model.config["grafana_port"],
+                self.model.config["admin_username"],
+                self.model.config["admin_password"],
+            )
+        )
+        return config_text
 
 
 if __name__ == "__main__":
