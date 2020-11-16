@@ -93,7 +93,7 @@ class TrainingCharm(CharmBase):
         if event.unit is None:
             return
 
-        dashboard = event.relation.data[event.unit].get("dashboard")
+        dashboard = event.relation.data[event.app].get("dashboard")
         if dashboard is None:
             return
 
