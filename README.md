@@ -70,7 +70,7 @@ To view the changes for [src/charm.py](src/charm.py)
 Build and deploy.
 
 ### 02 - Using configs
-View the changes for [conig.yaml](conig.yaml)
+View the changes for [config.yaml](config.yaml)
 
     > diff stages/config-yaml/00init.yaml stages/config-yaml/02newconfigs.yaml
 
