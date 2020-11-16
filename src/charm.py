@@ -29,6 +29,9 @@ class TrainingCharm(CharmBase):
             self.on["grafana-dashboard"].relation_broken, self._on_dashboard_broken
         )
         self._stored.set_default(dashboards=dict())
+        self.framework.observe(
+            self.on["training-peer"].relation_joined, self._on_peer_joined
+        )
 
     def _on_config_changed(self, _=None):
         pod_spec = self._build_pod_spec()
@@ -103,6 +106,13 @@ class TrainingCharm(CharmBase):
     def _on_dashboard_broken(self, event):
         self._stored.dashboards.pop(event.relation.id, None)
         self._on_config_changed()
+
+    def _on_peer_joined(self, event):
+        if self.unit.is_leader():
+            private_ip = str(self.model.get_binding(event.relation).network.bind_address)
+            cluster_port = self.model.config["grafana_port"]
+            cluster_host = "{}:{}".format(private_ip, cluster_port)
+            event.relation.data[self.app].update({"source_host": cluster_host})
 
 
 if __name__ == "__main__":

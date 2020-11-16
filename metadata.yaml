@@ -13,3 +13,6 @@ storage:
 provides:
     grafana-dashboard:
         interface: grafana-dashboard
+peers:
+    training-peer:
+        interface: training-peer-interface
