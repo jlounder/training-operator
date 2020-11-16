@@ -6,3 +6,7 @@ description: |
 summary: |
   TODO: fill out the charm's summary
 series: [kubernetes]
+storage:
+    sqlitedb:
+        type: filesystem
+        location: /var/lib/grafana
