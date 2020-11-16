@@ -2,35 +2,21 @@
 # See LICENSE file for licensing details.
 
 import unittest
-from unittest.mock import Mock
+# from unittest.mock import Mock
 
 from ops.testing import Harness
 from charm import TrainingCharm
 
 
 class TestCharm(unittest.TestCase):
-    def test_config_changed(self):
-        harness = Harness(TrainingCharm)
-        # from 0.8 you should also do:
-        # self.addCleanup(harness.cleanup)
-        harness.begin()
-        self.assertEqual(list(harness.charm._stored.things), [])
-        harness.update_config({"thing": "foo"})
-        self.assertEqual(list(harness.charm._stored.things), ["foo"])
+    def setUp(self) -> None:
+        self.harness = Harness(TrainingCharm)
+        self.addCleanup(self.harness.cleanup)
+        self.harness.begin()
 
-    def test_action(self):
-        harness = Harness(TrainingCharm)
-        harness.begin()
-        # the harness doesn't (yet!) help much with actions themselves
-        action_event = Mock(params={"fail": ""})
-        harness.charm._on_fortune_action(action_event)
-
-        self.assertTrue(action_event.set_results.called)
-
-    def test_action_fail(self):
-        harness = Harness(TrainingCharm)
-        harness.begin()
-        action_event = Mock(params={"fail": "fail this"})
-        harness.charm._on_fortune_action(action_event)
-
-        self.assertEqual(action_event.fail.call_args, [("fail this",)])
+    def test__grafana_port_config_changed(self):
+        self.harness.set_leader(True)
+        self.harness.update_config({"grafana_port": 4000})
+        pod_spec = self.harness.get_pod_spec()[0]
+        self.assertEqual(pod_spec["containers"][0]["ports"][0]["containerPort"], 4000)
+        self.assertEqual(pod_spec["containers"][0]["readinessProbe"]["httpGet"]["port"], 4000)
