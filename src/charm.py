@@ -19,6 +19,16 @@ class TrainingCharm(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
+        self.framework.observe(
+            self.on["grafana-dashboard"].relation_joined, self._on_dashboard_joined
+        )
+        self.framework.observe(
+            self.on["grafana-dashboard"].relation_changed, self._on_dashboard_changed
+        )
+        self.framework.observe(
+            self.on["grafana-dashboard"].relation_broken, self._on_dashboard_broken
+        )
+        self._stored.set_default(dashboards=dict())
 
     def _on_config_changed(self, _=None):
         pod_spec = self._build_pod_spec()
@@ -69,6 +79,30 @@ class TrainingCharm(CharmBase):
             )
         )
         return config_text
+
+    def _on_dashboard_joined(self, event):
+        ingress_ip = self.model.get_binding(event.relation).network.ingress_address
+        ingress_port = self.model.config["grafana_port"]
+        grafana_host = "{}:{}".format(ingress_ip, ingress_port)
+        event.relation.data[self.app].update({"host": grafana_host})
+
+        private_ip = str(self.model.get_binding(event.relation).network.bind_address)
+        event.relation.data[self.unit].update({"private_address": private_ip})
+
+    def _on_dashboard_changed(self, event):
+        if event.unit is None:
+            return
+
+        dashboard = event.relation.data[event.unit].get("dashboard")
+        if dashboard is None:
+            return
+
+        self._stored.dashboards.update({event.relation.id: dashboard})
+        self._on_config_changed()
+
+    def _on_dashboard_broken(self, event):
+        self._stored.dashboards.pop(event.relation.id, None)
+        self._on_config_changed()
 
 
 if __name__ == "__main__":
