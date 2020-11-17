@@ -6,3 +6,13 @@ description: |
 summary: |
   TODO: fill out the charm's summary
 series: [kubernetes]
+storage:
+    sqlitedb:
+        type: filesystem
+        location: /var/lib/grafana
+provides:
+    grafana-dashboard:
+        interface: grafana-dashboard
+peers:
+    training-peer:
+        interface: training-peer-interface

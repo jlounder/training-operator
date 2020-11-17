@@ -7,6 +7,7 @@ import logging
 from ops.charm import CharmBase
 from ops.main import main
 from ops.framework import StoredState
+from ops.model import ActiveStatus
 
 logger = logging.getLogger(__name__)
 
@@ -17,21 +18,31 @@ class TrainingCharm(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
-        self.framework.observe(self.on.fortune_action, self._on_fortune_action)
-        self._stored.set_default(things=[])
 
-    def _on_config_changed(self, _):
-        current = self.model.config["thing"]
-        if current not in self._stored.things:
-            logger.debug("found a new thing: %r", current)
-            self._stored.things.append(current)
+    def _on_config_changed(self, _=None):
+        pod_spec = self._build_pod_spec()
+        self.model.pod.set_spec(pod_spec)
+        self.unit.status = ActiveStatus("Grafana pod ready.")
 
-    def _on_fortune_action(self, event):
-        fail = event.params["fail"]
-        if fail:
-            event.fail(fail)
-        else:
-            event.set_results({"fortune": "A bug in the code is worth two in the documentation."})
+    def _build_pod_spec(self):
+        spec = {
+            "containers": [
+                {
+                    "name": self.app.name,
+                    "imageDetails": {"imagePath": "grafana/grafana:7.2.1-ubuntu"},
+                    "ports": [{"containerPort": 3000, "protocol": "TCP"}],
+                    "readinessProbe": {
+                        "httpGet": {"path": "/api/health", "port": 3000},
+                        "initialDelaySeconds": 10,
+                        "timeoutSeconds": 30,
+                    },
+                    "files": [],
+                    "config": {},  # used to store hashes of config file text
+                }
+            ]
+        }
+
+        return spec
 
 
 if __name__ == "__main__":
